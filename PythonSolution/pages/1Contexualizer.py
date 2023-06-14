@@ -21,8 +21,8 @@ st.write("Use visual analytics to dynamically display and explore context around
 st.divider()
 
 # ----------------------- Importing dataframes -----------------------
-nodes = pd.read_csv('Helpers/Dataset/Nodes.csv')
-links = pd.read_csv('Helpers/Dataset/Links.csv')
+nodes = pd.read_csv('/Users/sarthakbhatt/Desktop/WorkStation/MSProject/MainProject/CSc173-Project/Dataset/Nodes.csv')
+links = pd.read_csv('/Users/sarthakbhatt/Desktop/WorkStation/MSProject/MainProject/CSc173-Project/Dataset/Links.csv')
 # ---------------------------------------------------------------------
 
 # add a entities
