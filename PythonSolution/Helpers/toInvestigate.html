@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 700px;
+                 background-color: #20202b;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 700px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "Faroe Islands Shrimp Shark", "label": "Faroe Islands Shrimp Shark", "shape": "dot", "title": "Faroe Islands Shrimp Shark Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "979893388", "label": "979893388", "shape": "dot", "title": "979893388 Neighbors:\u003cbr\u003eJennifer Reilly\u003cbr\u003eRyabikova\u003cbr\u003eJeremy Woodard\u003cbr\u003e418382\u003cbr\u003eSept\u003cbr\u003e520673\u003cbr\u003eChristopher Peterson\u003cbr\u003eStephanie Wiley\u003cbr\u003e\u00e2\u0080\u0099\u00e2\u003cbr\u003e21240092\u003cbr\u003eMary Horton\u003cbr\u003e7548555\u003cbr\u003e6731\u003cbr\u003eAndrea Gibson\u003cbr\u003e4348721\u003cbr\u003eLuis Jones\u003cbr\u003eRyan Lewis\u003cbr\u003eRobert Vega\u003cbr\u003eStephanie Quinn\u003cbr\u003eSeafood\u003cbr\u003eMadhya Pradesh Market BV\u003cbr\u003e9979944\u003cbr\u003eb8567859-bf54-49fd-8332-5775e19c65af\u003cbr\u003eDawn Robinson\u003cbr\u003e9067\u003cbr\u003e947\u003cbr\u003eROBYN BECK\u003cbr\u003ebrianbushard\u003cbr\u003e327277616\u003cbr\u003ewgbh\u003cbr\u003eMichael Reed\u003cbr\u003e565431\u003cbr\u003e7675191\u003cbr\u003e3404599\u003cbr\u003e526269\u003cbr\u003eJennifer Alvarez\u003cbr\u003esu y CJSC Canal\u003cbr\u003edays\u003cbr\u003eJohn Barnes DDS\u003cbr\u003e90\u003cbr\u003eAmanda Mckenzie\u003cbr\u003e9345\u003cbr\u003e9\u003cbr\u003e36744944\u003cbr\u003e\u00e2\u0080\u009cU\u003cbr\u003e672\u003cbr\u003e17232\u003cbr\u003e903311212\u003cbr\u003ef656719b-783e-452b-801f-f60895068b23\u003cbr\u003e16927047\u003cbr\u003e7775\u003cbr\u003eoceana\u003cbr\u003eKelsey Tucker\u003cbr\u003eSea Harvest\u003cbr\u003e23\u003cbr\u003e990\u003cbr\u003eLisa Rocha\u003cbr\u003eShawna Welch\u003cbr\u003ePez Dorado BV Logistics\u003cbr\u003eChristopher Miller\u003cbr\u003e156\u003cbr\u003e67a59fab-710a-4992-b6d0-d581fd9dceba\u003cbr\u003e4657860\u003cbr\u003eSeaSpray Wave SRL Solutions\u003cbr\u003e5\u003cbr\u003eIrish Sea SRL Brothers\u003cbr\u003eSonia Fisheries Pvt\u003cbr\u003eAudrey Romero\u003cbr\u003eMichael Compton\u003cbr\u003e30041\u003cbr\u003eFaroe Islands Shrimp Shark\u003cbr\u003eLinda Sherman\u003cbr\u003e739622\u003cbr\u003e9786\u003cbr\u003e7023\u003cbr\u003e912077\u003cbr\u003e98332\u003cbr\u003eAmy Wise\u003cbr\u003e567\u003cbr\u003e5421\u003cbr\u003e436460757\u003cbr\u003e665912557\u003cbr\u003e6335187\u003cbr\u003e17c99d9d-7049-4ebb-8a2a-f3d39cc42870\u003cbr\u003eMV\u003cbr\u003eLisa Ward\u003cbr\u003eSeth Kelley\u003cbr\u003eMar del Oeste Pic\u003cbr\u003ec14a3dc1-59d0-4b92-b9f3-331e51912787\u003cbr\u003e\u00e2\u0080\u009cUS\u003cbr\u003esh rn y Corporation\u003cbr\u003e1560\u003cbr\u003e6471708\u003cbr\u003eDiane Forbes\u003cbr\u003e98703\u003cbr\u003e665\u003cbr\u003eJessica Owens\u003cbr\u003e\u00e2\u0080\u009cCompliance\u003cbr\u003eDanielle Jensen\u003cbr\u003eMichelle Kelley\u003cbr\u003e8634589\u003cbr\u003e69150209\u003cbr\u003eAustin Simpson\u003cbr\u003eSudd Swamp  Wave AS Freight \u003cbr\u003e435054320\u003cbr\u003e58877070\u003cbr\u003e\u00e2\u0080\u009cbracatinga\u003cbr\u003e6070651\u003cbr\u003eKrystal Lee\u003cbr\u003eCaribbean\u003cbr\u003e019d89a8-36be-4402-bf3c-d13cb982cf3f\u003cbr\u003eMaria Mitchell\u003cbr\u003eMakayla Anderson\u003cbr\u003eb20c0baf-8530-4a84-a5b6-8da324ebebdb\u003cbr\u003eApril\u003cbr\u003e23990411\u003cbr\u003e1eb512b7-c4ce-4b7e-9965-2236bf1afc9e\u003cbr\u003eDerek Burke\u003cbr\u003eb1d6e468-f3c5-45f3-90a2-e76b2f329b2d\u003cbr\u003e76104890\u003cbr\u003e\u00e2\u0080\u009cBHF\u00e2\u003cbr\u003ePaul Wiley\u003cbr\u003eBenton Ltd. Liability Co\u003cbr\u003eForwading S.A. de C.V.\u003cbr\u003e822596165\u003cbr\u003epng xi  Line\u003cbr\u003ee1d7b4ac-ed31-42a4-9375-4afb0f78f276\u003cbr\u003e3016\u003cbr\u003e2913\u003cbr\u003eRomero Oyster NV Carriers\u003cbr\u003e34\u003cbr\u003e076\u003cbr\u003eErica Hamilton\u003cbr\u003eAbigail Foster\u003cbr\u003e6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad\u003cbr\u003e74026296\u003cbr\u003e415053\u003cbr\u003eDana Goodwin\u003cbr\u003e49\u003cbr\u003e196159\u003cbr\u003emerida\u00e2\u003cbr\u003eJessica Figueroa DDS\u003cbr\u003eninety\u003cbr\u003e4356\u003cbr\u003e13d79d632036\u003cbr\u003e1972868\u003cbr\u003eBlake Smith\u003cbr\u003eb1a0ee2a-0e6d-48c2-b639-032e4648fa5c\u003cbr\u003e57\u003cbr\u003e9590898\u003cbr\u003e542341\u003cbr\u003e8814\u003cbr\u003eOcean Fisheries Llc\u003cbr\u003eJohn Gonzalez\u003cbr\u003emonths\u003cbr\u003e25851337\u003cbr\u003e14bda3bb-9993-4265-97cc-1747808c144e\u003cbr\u003eJoshua Garrett\u003cbr\u003ead8fe467-3759-4f53-bf6a-896a237d187f\u003cbr\u003eKelly Brown\u003cbr\u003eARA Contraalmirante Cordero\u003cbr\u003eKristin Jones\u003cbr\u003e750975\u003cbr\u003eLake Tanganyika Sea AS Shipping\u003cbr\u003eRobert Shaffer\u003cbr\u003ec01c6a10-60c9-4f11-9409-aa04c3963826\u003cbr\u003eWilliam Fernandez\u003cbr\u003eFeb\u003cbr\u003e\u00e2\u0080\u0098enticed\u00e2\u003cbr\u003ef21800ca-b3c9-404b-8438-3d75ea84c409\u003cbr\u003eMiranda Long\u003cbr\u003eOceanfront Oasis Inc Carriers\u003cbr\u003e20370602035941\u003cbr\u003eStephanie Hinton\u003cbr\u003eEstrella de Coral Ltd. Corporation Logistics\u003cbr\u003eusa\u003cbr\u003e4", "value": 177}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "4", "label": "4", "shape": "dot", "title": "4 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "196159", "label": "196159", "shape": "dot", "title": "196159 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9067", "label": "9067", "shape": "dot", "title": "9067 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "750975", "label": "750975", "shape": "dot", "title": "750975 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "69150209", "label": "69150209", "shape": "dot", "title": "69150209 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "5", "label": "5", "shape": "dot", "title": "5 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Maria Mitchell", "label": "Maria Mitchell", "shape": "dot", "title": "Maria Mitchell Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9", "label": "9", "shape": "dot", "title": "9 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "14bda3bb-9993-4265-97cc-1747808c144e", "label": "14bda3bb-9993-4265-97cc-1747808c144e", "shape": "dot", "title": "14bda3bb-9993-4265-97cc-1747808c144e Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "6731", "label": "6731", "shape": "dot", "title": "6731 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "665", "label": "665", "shape": "dot", "title": "665 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "947", "label": "947", "shape": "dot", "title": "947 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Michael Compton", "label": "Michael Compton", "shape": "dot", "title": "Michael Compton Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "4348721", "label": "4348721", "shape": "dot", "title": "4348721 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "label": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "shape": "dot", "title": "b20c0baf-8530-4a84-a5b6-8da324ebebdb Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "435054320", "label": "435054320", "shape": "dot", "title": "435054320 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "f21800ca-b3c9-404b-8438-3d75ea84c409", "label": "f21800ca-b3c9-404b-8438-3d75ea84c409", "shape": "dot", "title": "f21800ca-b3c9-404b-8438-3d75ea84c409 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "1560", "label": "1560", "shape": "dot", "title": "1560 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sept", "label": "Sept", "shape": "dot", "title": "Sept Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "John Gonzalez", "label": "John Gonzalez", "shape": "dot", "title": "John Gonzalez Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "png xi  Line", "label": "png xi  Line", "shape": "dot", "title": "png xi  Line Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "April", "label": "April", "shape": "dot", "title": "April Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jennifer Alvarez", "label": "Jennifer Alvarez", "shape": "dot", "title": "Jennifer Alvarez Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "49", "label": "49", "shape": "dot", "title": "49 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "34", "label": "34", "shape": "dot", "title": "34 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stephanie Hinton", "label": "Stephanie Hinton", "shape": "dot", "title": "Stephanie Hinton Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "672", "label": "672", "shape": "dot", "title": "672 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Mar del Oeste Pic", "label": "Mar del Oeste Pic", "shape": "dot", "title": "Mar del Oeste Pic Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "98332", "label": "98332", "shape": "dot", "title": "98332 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9786", "label": "9786", "shape": "dot", "title": "9786 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dana Goodwin", "label": "Dana Goodwin", "shape": "dot", "title": "Dana Goodwin Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "7023", "label": "7023", "shape": "dot", "title": "7023 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "label": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "shape": "dot", "title": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "label": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "shape": "dot", "title": "c14a3dc1-59d0-4b92-b9f3-331e51912787 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Christopher Peterson", "label": "Christopher Peterson", "shape": "dot", "title": "Christopher Peterson Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Abigail Foster", "label": "Abigail Foster", "shape": "dot", "title": "Abigail Foster Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u009cU", "label": "\u00e2\u0080\u009cU", "shape": "dot", "title": "\u00e2\u0080\u009cU Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kelly Brown", "label": "Kelly Brown", "shape": "dot", "title": "Kelly Brown Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ad8fe467-3759-4f53-bf6a-896a237d187f", "label": "ad8fe467-3759-4f53-bf6a-896a237d187f", "shape": "dot", "title": "ad8fe467-3759-4f53-bf6a-896a237d187f Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Linda Sherman", "label": "Linda Sherman", "shape": "dot", "title": "Linda Sherman Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "3016", "label": "3016", "shape": "dot", "title": "3016 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Oceanfront Oasis Inc Carriers", "label": "Oceanfront Oasis Inc Carriers", "shape": "dot", "title": "Oceanfront Oasis Inc Carriers Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "months", "label": "months", "shape": "dot", "title": "months Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Amy Wise", "label": "Amy Wise", "shape": "dot", "title": "Amy Wise Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "98703", "label": "98703", "shape": "dot", "title": "98703 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "567", "label": "567", "shape": "dot", "title": "567 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "990", "label": "990", "shape": "dot", "title": "990 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "23", "label": "23", "shape": "dot", "title": "23 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jennifer Reilly", "label": "Jennifer Reilly", "shape": "dot", "title": "Jennifer Reilly Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kristin Jones", "label": "Kristin Jones", "shape": "dot", "title": "Kristin Jones Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Krystal Lee", "label": "Krystal Lee", "shape": "dot", "title": "Krystal Lee Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ARA Contraalmirante Cordero", "label": "ARA Contraalmirante Cordero", "shape": "dot", "title": "ARA Contraalmirante Cordero Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Irish Sea SRL Brothers", "label": "Irish Sea SRL Brothers", "shape": "dot", "title": "Irish Sea SRL Brothers Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Romero Oyster NV Carriers", "label": "Romero Oyster NV Carriers", "shape": "dot", "title": "Romero Oyster NV Carriers Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sea Harvest", "label": "Sea Harvest", "shape": "dot", "title": "Sea Harvest Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u009cBHF\u00e2", "label": "\u00e2\u0080\u009cBHF\u00e2", "shape": "dot", "title": "\u00e2\u0080\u009cBHF\u00e2 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Madhya Pradesh Market BV", "label": "Madhya Pradesh Market BV", "shape": "dot", "title": "Madhya Pradesh Market BV Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "usa", "label": "usa", "shape": "dot", "title": "usa Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "418382", "label": "418382", "shape": "dot", "title": "418382 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "16927047", "label": "16927047", "shape": "dot", "title": "16927047 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "30041", "label": "30041", "shape": "dot", "title": "30041 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "6471708", "label": "6471708", "shape": "dot", "title": "6471708 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "520673", "label": "520673", "shape": "dot", "title": "520673 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "565431", "label": "565431", "shape": "dot", "title": "565431 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Benton Ltd. Liability Co", "label": "Benton Ltd. Liability Co", "shape": "dot", "title": "Benton Ltd. Liability Co Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ninety", "label": "ninety", "shape": "dot", "title": "ninety Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "90", "label": "90", "shape": "dot", "title": "90 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "days", "label": "days", "shape": "dot", "title": "days Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sh rn y Corporation", "label": "sh rn y Corporation", "shape": "dot", "title": "sh rn y Corporation Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "822596165", "label": "822596165", "shape": "dot", "title": "822596165 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "5421", "label": "5421", "shape": "dot", "title": "5421 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "2913", "label": "2913", "shape": "dot", "title": "2913 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Pez Dorado BV Logistics", "label": "Pez Dorado BV Logistics", "shape": "dot", "title": "Pez Dorado BV Logistics Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "label": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "shape": "dot", "title": "019d89a8-36be-4402-bf3c-d13cb982cf3f Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ryabikova", "label": "Ryabikova", "shape": "dot", "title": "Ryabikova Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Erica Hamilton", "label": "Erica Hamilton", "shape": "dot", "title": "Erica Hamilton Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Michael Reed", "label": "Michael Reed", "shape": "dot", "title": "Michael Reed Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Andrea Gibson", "label": "Andrea Gibson", "shape": "dot", "title": "Andrea Gibson Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kelsey Tucker", "label": "Kelsey Tucker", "shape": "dot", "title": "Kelsey Tucker Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ryan Lewis", "label": "Ryan Lewis", "shape": "dot", "title": "Ryan Lewis Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jessica Figueroa DDS", "label": "Jessica Figueroa DDS", "shape": "dot", "title": "Jessica Figueroa DDS Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "57", "label": "57", "shape": "dot", "title": "57 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Luis Jones", "label": "Luis Jones", "shape": "dot", "title": "Luis Jones Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "c01c6a10-60c9-4f11-9409-aa04c3963826", "label": "c01c6a10-60c9-4f11-9409-aa04c3963826", "shape": "dot", "title": "c01c6a10-60c9-4f11-9409-aa04c3963826 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "17232", "label": "17232", "shape": "dot", "title": "17232 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Derek Burke", "label": "Derek Burke", "shape": "dot", "title": "Derek Burke Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "John Barnes DDS", "label": "John Barnes DDS", "shape": "dot", "title": "John Barnes DDS Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "wgbh", "label": "wgbh", "shape": "dot", "title": "wgbh Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "brianbushard", "label": "brianbushard", "shape": "dot", "title": "brianbushard Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Robert Shaffer", "label": "Robert Shaffer", "shape": "dot", "title": "Robert Shaffer Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jeremy Woodard", "label": "Jeremy Woodard", "shape": "dot", "title": "Jeremy Woodard Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Paul Wiley", "label": "Paul Wiley", "shape": "dot", "title": "Paul Wiley Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Miranda Long", "label": "Miranda Long", "shape": "dot", "title": "Miranda Long Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Amanda Mckenzie", "label": "Amanda Mckenzie", "shape": "dot", "title": "Amanda Mckenzie Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Michelle Kelley", "label": "Michelle Kelley", "shape": "dot", "title": "Michelle Kelley Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Austin Simpson", "label": "Austin Simpson", "shape": "dot", "title": "Austin Simpson Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "su y CJSC Canal", "label": "su y CJSC Canal", "shape": "dot", "title": "su y CJSC Canal Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Robert Vega", "label": "Robert Vega", "shape": "dot", "title": "Robert Vega Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u0099\u00e2", "label": "\u00e2\u0080\u0099\u00e2", "shape": "dot", "title": "\u00e2\u0080\u0099\u00e2 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Christopher Miller", "label": "Christopher Miller", "shape": "dot", "title": "Christopher Miller Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u0098enticed\u00e2", "label": "\u00e2\u0080\u0098enticed\u00e2", "shape": "dot", "title": "\u00e2\u0080\u0098enticed\u00e2 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "8814", "label": "8814", "shape": "dot", "title": "8814 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "25851337", "label": "25851337", "shape": "dot", "title": "25851337 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "label": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "shape": "dot", "title": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u009cbracatinga", "label": "\u00e2\u0080\u009cbracatinga", "shape": "dot", "title": "\u00e2\u0080\u009cbracatinga Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "merida\u00e2", "label": "merida\u00e2", "shape": "dot", "title": "merida\u00e2 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ROBYN BECK", "label": "ROBYN BECK", "shape": "dot", "title": "ROBYN BECK Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "13d79d632036", "label": "13d79d632036", "shape": "dot", "title": "13d79d632036 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "20370602035941", "label": "20370602035941", "shape": "dot", "title": "20370602035941 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "526269", "label": "526269", "shape": "dot", "title": "526269 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "3404599", "label": "3404599", "shape": "dot", "title": "3404599 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "7775", "label": "7775", "shape": "dot", "title": "7775 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sonia Fisheries Pvt", "label": "Sonia Fisheries Pvt", "shape": "dot", "title": "Sonia Fisheries Pvt Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "label": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "shape": "dot", "title": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Mary Horton", "label": "Mary Horton", "shape": "dot", "title": "Mary Horton Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "67a59fab-710a-4992-b6d0-d581fd9dceba", "label": "67a59fab-710a-4992-b6d0-d581fd9dceba", "shape": "dot", "title": "67a59fab-710a-4992-b6d0-d581fd9dceba Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "1972868", "label": "1972868", "shape": "dot", "title": "1972868 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Audrey Romero", "label": "Audrey Romero", "shape": "dot", "title": "Audrey Romero Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stephanie Quinn", "label": "Stephanie Quinn", "shape": "dot", "title": "Stephanie Quinn Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9590898", "label": "9590898", "shape": "dot", "title": "9590898 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Joshua Garrett", "label": "Joshua Garrett", "shape": "dot", "title": "Joshua Garrett Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "21240092", "label": "21240092", "shape": "dot", "title": "21240092 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "6335187", "label": "6335187", "shape": "dot", "title": "6335187 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jessica Owens", "label": "Jessica Owens", "shape": "dot", "title": "Jessica Owens Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "7548555", "label": "7548555", "shape": "dot", "title": "7548555 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "36744944", "label": "36744944", "shape": "dot", "title": "36744944 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shawna Welch", "label": "Shawna Welch", "shape": "dot", "title": "Shawna Welch Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "903311212", "label": "903311212", "shape": "dot", "title": "903311212 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "23990411", "label": "23990411", "shape": "dot", "title": "23990411 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "415053", "label": "415053", "shape": "dot", "title": "415053 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "665912557", "label": "665912557", "shape": "dot", "title": "665912557 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "327277616", "label": "327277616", "shape": "dot", "title": "327277616 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "58877070", "label": "58877070", "shape": "dot", "title": "58877070 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "oceana", "label": "oceana", "shape": "dot", "title": "oceana Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Blake Smith", "label": "Blake Smith", "shape": "dot", "title": "Blake Smith Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Makayla Anderson", "label": "Makayla Anderson", "shape": "dot", "title": "Makayla Anderson Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "4657860", "label": "4657860", "shape": "dot", "title": "4657860 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisa Rocha", "label": "Lisa Rocha", "shape": "dot", "title": "Lisa Rocha Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "label": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "shape": "dot", "title": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "542341", "label": "542341", "shape": "dot", "title": "542341 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9979944", "label": "9979944", "shape": "dot", "title": "9979944 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stephanie Wiley", "label": "Stephanie Wiley", "shape": "dot", "title": "Stephanie Wiley Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisa Ward", "label": "Lisa Ward", "shape": "dot", "title": "Lisa Ward Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "William Fernandez", "label": "William Fernandez", "shape": "dot", "title": "William Fernandez Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "8634589", "label": "8634589", "shape": "dot", "title": "8634589 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "9345", "label": "9345", "shape": "dot", "title": "9345 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Seth Kelley", "label": "Seth Kelley", "shape": "dot", "title": "Seth Kelley Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "739622", "label": "739622", "shape": "dot", "title": "739622 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "7675191", "label": "7675191", "shape": "dot", "title": "7675191 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "4356", "label": "4356", "shape": "dot", "title": "4356 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "6070651", "label": "6070651", "shape": "dot", "title": "6070651 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "156", "label": "156", "shape": "dot", "title": "156 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "label": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "shape": "dot", "title": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "f656719b-783e-452b-801f-f60895068b23", "label": "f656719b-783e-452b-801f-f60895068b23", "shape": "dot", "title": "f656719b-783e-452b-801f-f60895068b23 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "label": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "shape": "dot", "title": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Feb", "label": "Feb", "shape": "dot", "title": "Feb Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "436460757", "label": "436460757", "shape": "dot", "title": "436460757 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "912077", "label": "912077", "shape": "dot", "title": "912077 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Danielle Jensen", "label": "Danielle Jensen", "shape": "dot", "title": "Danielle Jensen Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "76104890", "label": "76104890", "shape": "dot", "title": "76104890 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sudd Swamp  Wave AS Freight ", "label": "Sudd Swamp  Wave AS Freight ", "shape": "dot", "title": "Sudd Swamp  Wave AS Freight  Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "74026296", "label": "74026296", "shape": "dot", "title": "74026296 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Diane Forbes", "label": "Diane Forbes", "shape": "dot", "title": "Diane Forbes Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dawn Robinson", "label": "Dawn Robinson", "shape": "dot", "title": "Dawn Robinson Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "076", "label": "076", "shape": "dot", "title": "076 Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "b8567859-bf54-49fd-8332-5775e19c65af", "label": "b8567859-bf54-49fd-8332-5775e19c65af", "shape": "dot", "title": "b8567859-bf54-49fd-8332-5775e19c65af Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SeaSpray Wave SRL Solutions", "label": "SeaSpray Wave SRL Solutions", "shape": "dot", "title": "SeaSpray Wave SRL Solutions Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ocean Fisheries Llc", "label": "Ocean Fisheries Llc", "shape": "dot", "title": "Ocean Fisheries Llc Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Estrella de Coral Ltd. Corporation Logistics", "label": "Estrella de Coral Ltd. Corporation Logistics", "shape": "dot", "title": "Estrella de Coral Ltd. Corporation Logistics Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Seafood", "label": "Seafood", "shape": "dot", "title": "Seafood Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Caribbean", "label": "Caribbean", "shape": "dot", "title": "Caribbean Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u009cCompliance", "label": "\u00e2\u0080\u009cCompliance", "shape": "dot", "title": "\u00e2\u0080\u009cCompliance Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Forwading S.A. de C.V.", "label": "Forwading S.A. de C.V.", "shape": "dot", "title": "Forwading S.A. de C.V. Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\u00e2\u0080\u009cUS", "label": "\u00e2\u0080\u009cUS", "shape": "dot", "title": "\u00e2\u0080\u009cUS Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lake Tanganyika Sea AS Shipping", "label": "Lake Tanganyika Sea AS Shipping", "shape": "dot", "title": "Lake Tanganyika Sea AS Shipping Neighbors:\u003cbr\u003e979893388", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MV", "label": "MV", "shape": "dot", "title": "MV Neighbors:\u003cbr\u003e979893388", "value": 1}]);
+                  edges = new vis.DataSet([{"from": "Faroe Islands Shrimp Shark", "to": "979893388", "value": 0.8558467}, {"from": "4", "to": "979893388", "value": 0.8639725}, {"from": "196159", "to": "979893388", "value": 0.8560038}, {"from": "9067", "to": "979893388", "value": 0.87009597}, {"from": "750975", "to": "979893388", "value": 0.8478948}, {"from": "69150209", "to": "979893388", "value": 0.8604943}, {"from": "5", "to": "979893388", "value": 0.959009}, {"from": "Maria Mitchell", "to": "979893388", "value": 0.8317078}, {"from": "9", "to": "979893388", "value": 0.81732166}, {"from": "14bda3bb-9993-4265-97cc-1747808c144e", "to": "979893388", "value": 0.8278751}, {"from": "6731", "to": "979893388", "value": 0.8362729}, {"from": "665", "to": "979893388", "value": 0.8804744}, {"from": "947", "to": "979893388", "value": 0.83156615}, {"from": "Michael Compton", "to": "979893388", "value": 0.82857007}, {"from": "4348721", "to": "979893388", "value": 0.82456464}, {"from": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "to": "979893388", "value": 0.8527388}, {"from": "435054320", "to": "979893388", "value": 0.8949433}, {"from": "f21800ca-b3c9-404b-8438-3d75ea84c409", "to": "979893388", "value": 0.9035101}, {"from": "1560", "to": "979893388", "value": 0.8778388}, {"from": "Sept", "to": "979893388", "value": 0.9250021}, {"from": "John Gonzalez", "to": "979893388", "value": 0.80070466}, {"from": "png xi  Line", "to": "979893388", "value": 0.8548082}, {"from": "April", "to": "979893388", "value": 0.8269599}, {"from": "Jennifer Alvarez", "to": "979893388", "value": 0.8039211}, {"from": "49", "to": "979893388", "value": 0.88690263}, {"from": "34", "to": "979893388", "value": 0.8349277}, {"from": "Stephanie Hinton", "to": "979893388", "value": 0.8064336}, {"from": "672", "to": "979893388", "value": 0.8599659}, {"from": "Mar del Oeste Pic", "to": "979893388", "value": 0.8568431}, {"from": "98332", "to": "979893388", "value": 0.8106895}, {"from": "9786", "to": "979893388", "value": 0.8377153}, {"from": "Dana Goodwin", "to": "979893388", "value": 0.8124407}, {"from": "7023", "to": "979893388", "value": 0.83087754}, {"from": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "to": "979893388", "value": 0.8048147}, {"from": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "to": "979893388", "value": 0.822751}, {"from": "Christopher Peterson", "to": "979893388", "value": 0.83825815}, {"from": "Abigail Foster", "to": "979893388", "value": 0.8423662}, {"from": "\u00e2\u0080\u009cU", "to": "979893388", "value": 0.8791356}, {"from": "Kelly Brown", "to": "979893388", "value": 0.8190675}, {"from": "ad8fe467-3759-4f53-bf6a-896a237d187f", "to": "979893388", "value": 0.9028851}, {"from": "Linda Sherman", "to": "979893388", "value": 0.853533}, {"from": "3016", "to": "979893388", "value": 0.8539279}, {"from": "979893388", "to": "Oceanfront Oasis Inc Carriers", "value": 0.8363937}, {"from": "979893388", "to": "months", "value": 0.9010467}, {"from": "979893388", "to": "Amy Wise", "value": 0.8037018}, {"from": "979893388", "to": "98703", "value": 0.8669315}, {"from": "979893388", "to": "567", "value": 0.8544229}, {"from": "979893388", "to": "990", "value": 0.8737811}, {"from": "979893388", "to": "23", "value": 0.8380823}, {"from": "979893388", "to": "Jennifer Reilly", "value": 0.8509253}, {"from": "979893388", "to": "Kristin Jones", "value": 0.9245638}, {"from": "979893388", "to": "Krystal Lee", "value": 0.8067644}, {"from": "979893388", "to": "ARA Contraalmirante Cordero", "value": 0.8316039}, {"from": "979893388", "to": "Irish Sea SRL Brothers", "value": 0.80921775}, {"from": "979893388", "to": "Romero Oyster NV Carriers", "value": 0.85296345}, {"from": "979893388", "to": "Sea Harvest", "value": 0.90525395}, {"from": "979893388", "to": "\u00e2\u0080\u009cBHF\u00e2", "value": 0.9314324}, {"from": "979893388", "to": "Madhya Pradesh Market BV", "value": 0.8807473}, {"from": "979893388", "to": "usa", "value": 0.8190544}, {"from": "979893388", "to": "418382", "value": 0.81654143}, {"from": "979893388", "to": "16927047", "value": 0.82753277}, {"from": "979893388", "to": "30041", "value": 0.856693}, {"from": "979893388", "to": "6471708", "value": 0.86487657}, {"from": "979893388", "to": "520673", "value": 0.83330137}, {"from": "979893388", "to": "565431", "value": 0.8108792}, {"from": "979893388", "to": "Benton Ltd. Liability Co", "value": 0.92848116}, {"from": "979893388", "to": "ninety", "value": 0.85535985}, {"from": "979893388", "to": "90", "value": 0.89930433}, {"from": "979893388", "to": "days", "value": 0.9455313}, {"from": "979893388", "to": "sh rn y Corporation", "value": 0.8221979}, {"from": "979893388", "to": "822596165", "value": 0.933341}, {"from": "979893388", "to": "5421", "value": 0.9693028}, {"from": "979893388", "to": "2913", "value": 0.8672797}, {"from": "979893388", "to": "Pez Dorado BV Logistics", "value": 0.9098652}, {"from": "979893388", "to": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "value": 0.9013529}, {"from": "979893388", "to": "Ryabikova", "value": 0.86339736}, {"from": "979893388", "to": "Erica Hamilton", "value": 0.8471957}, {"from": "979893388", "to": "Michael Reed", "value": 0.8013556}, {"from": "979893388", "to": "Andrea Gibson", "value": 0.800491}, {"from": "979893388", "to": "Kelsey Tucker", "value": 0.9103631}, {"from": "979893388", "to": "Ryan Lewis", "value": 0.8221714}, {"from": "979893388", "to": "Jessica Figueroa DDS", "value": 0.82628155}, {"from": "979893388", "to": "57", "value": 0.9378966}, {"from": "979893388", "to": "Luis Jones", "value": 0.9591203}, {"from": "979893388", "to": "c01c6a10-60c9-4f11-9409-aa04c3963826", "value": 0.9087362}, {"from": "979893388", "to": "17232", "value": 0.9355846}, {"from": "979893388", "to": "Derek Burke", "value": 0.88688254}, {"from": "979893388", "to": "John Barnes DDS", "value": 0.8241445}, {"from": "979893388", "to": "wgbh", "value": 0.8992002}, {"from": "979893388", "to": "brianbushard", "value": 0.8138306}, {"from": "979893388", "to": "Robert Shaffer", "value": 0.86923563}, {"from": "979893388", "to": "Jeremy Woodard", "value": 0.88034105}, {"from": "979893388", "to": "Paul Wiley", "value": 0.81853545}, {"from": "979893388", "to": "Miranda Long", "value": 0.8148093}, {"from": "979893388", "to": "Amanda Mckenzie", "value": 0.8730826}, {"from": "979893388", "to": "Michelle Kelley", "value": 0.86393744}, {"from": "979893388", "to": "Austin Simpson", "value": 0.8872774}, {"from": "979893388", "to": "su y CJSC Canal", "value": 0.8099027}, {"from": "979893388", "to": "Robert Vega", "value": 0.83982015}, {"from": "979893388", "to": "\u00e2\u0080\u0099\u00e2", "value": 0.8082725}, {"from": "979893388", "to": "Christopher Miller", "value": 0.8689309}, {"from": "979893388", "to": "\u00e2\u0080\u0098enticed\u00e2", "value": 0.8718408}, {"from": "979893388", "to": "8814", "value": 0.8829086}, {"from": "979893388", "to": "25851337", "value": 0.81509984}, {"from": "979893388", "to": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "value": 0.8050555}, {"from": "979893388", "to": "\u00e2\u0080\u009cbracatinga", "value": 0.8989898}, {"from": "979893388", "to": "merida\u00e2", "value": 0.9245712}, {"from": "979893388", "to": "ROBYN BECK", "value": 0.8268199}, {"from": "979893388", "to": "13d79d632036", "value": 0.88416487}, {"from": "979893388", "to": "20370602035941", "value": 0.8012673}, {"from": "979893388", "to": "526269", "value": 0.8520045}, {"from": "979893388", "to": "3404599", "value": 0.9197402}, {"from": "979893388", "to": "7775", "value": 0.9553749}, {"from": "979893388", "to": "Sonia Fisheries Pvt", "value": 0.8305041}, {"from": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "to": "979893388", "value": 0.82122797}, {"from": "Mary Horton", "to": "979893388", "value": 0.92963344}, {"from": "67a59fab-710a-4992-b6d0-d581fd9dceba", "to": "979893388", "value": 0.8601455}, {"from": "1972868", "to": "979893388", "value": 0.8593402}, {"from": "Audrey Romero", "to": "979893388", "value": 0.9404788}, {"from": "Stephanie Quinn", "to": "979893388", "value": 0.8554047}, {"from": "9590898", "to": "979893388", "value": 0.8504263}, {"from": "Joshua Garrett", "to": "979893388", "value": 0.8359313}, {"from": "21240092", "to": "979893388", "value": 0.9057934}, {"from": "6335187", "to": "979893388", "value": 0.83455515}, {"from": "Jessica Owens", "to": "979893388", "value": 0.874296}, {"from": "7548555", "to": "979893388", "value": 0.80463594}, {"from": "36744944", "to": "979893388", "value": 0.90055144}, {"from": "Shawna Welch", "to": "979893388", "value": 0.86786324}, {"from": "903311212", "to": "979893388", "value": 0.8570701}, {"from": "23990411", "to": "979893388", "value": 0.9491618}, {"from": "415053", "to": "979893388", "value": 0.8782817}, {"from": "665912557", "to": "979893388", "value": 0.98395973}, {"from": "327277616", "to": "979893388", "value": 0.8288813}, {"from": "58877070", "to": "979893388", "value": 0.8664461}, {"from": "oceana", "to": "979893388", "value": 0.8677315}, {"from": "Blake Smith", "to": "979893388", "value": 0.82644343}, {"from": "Makayla Anderson", "to": "979893388", "value": 0.81223625}, {"from": "4657860", "to": "979893388", "value": 0.80191934}, {"from": "Lisa Rocha", "to": "979893388", "value": 0.8415001}, {"from": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "to": "979893388", "value": 0.95712304}, {"from": "542341", "to": "979893388", "value": 0.8511472}, {"from": "9979944", "to": "979893388", "value": 0.9364655}, {"from": "Stephanie Wiley", "to": "979893388", "value": 0.9401714}, {"from": "Lisa Ward", "to": "979893388", "value": 0.9658436}, {"from": "William Fernandez", "to": "979893388", "value": 0.9564544}, {"from": "8634589", "to": "979893388", "value": 0.9246899}, {"from": "9345", "to": "979893388", "value": 0.819125}, {"from": "Seth Kelley", "to": "979893388", "value": 0.82787496}, {"from": "739622", "to": "979893388", "value": 0.8546537}, {"from": "7675191", "to": "979893388", "value": 0.84073246}, {"from": "4356", "to": "979893388", "value": 0.82611614}, {"from": "6070651", "to": "979893388", "value": 0.8969305}, {"from": "156", "to": "979893388", "value": 0.8817072}, {"from": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "to": "979893388", "value": 0.8684314}, {"from": "f656719b-783e-452b-801f-f60895068b23", "to": "979893388", "value": 0.8569629}, {"from": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "to": "979893388", "value": 0.9433061}, {"from": "Feb", "to": "979893388", "value": 0.86859995}, {"from": "436460757", "to": "979893388", "value": 0.8729532}, {"from": "912077", "to": "979893388", "value": 0.84540343}, {"from": "Danielle Jensen", "to": "979893388", "value": 0.80557436}, {"from": "76104890", "to": "979893388", "value": 0.81974775}, {"from": "Sudd Swamp  Wave AS Freight ", "to": "979893388", "value": 0.8497577}, {"from": "74026296", "to": "979893388", "value": 0.8230321}, {"from": "Diane Forbes", "to": "979893388", "value": 0.8604429}, {"from": "Dawn Robinson", "to": "979893388", "value": 0.8768208}, {"from": "076", "to": "979893388", "value": 0.8539176}, {"from": "b8567859-bf54-49fd-8332-5775e19c65af", "to": "979893388", "value": 0.84869397}, {"from": "SeaSpray Wave SRL Solutions", "to": "979893388", "value": 0.8700393}, {"from": "Ocean Fisheries Llc", "to": "979893388", "value": 0.8389201}, {"from": "Estrella de Coral Ltd. Corporation Logistics", "to": "979893388", "value": 0.9095123}, {"from": "Seafood", "to": "979893388", "value": 0.88370514}, {"from": "Caribbean", "to": "979893388", "value": 0.8315047}, {"from": "\u00e2\u0080\u009cCompliance", "to": "979893388", "value": 0.8685694}, {"from": "Forwading S.A. de C.V.", "to": "979893388", "value": 0.88581204}, {"from": "\u00e2\u0080\u009cUS", "to": "979893388", "value": 0.8988331}, {"from": "Lake Tanganyika Sea AS Shipping", "to": "979893388", "value": 0.8303668}, {"from": "MV", "to": "979893388", "value": 0.90409166}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
