@@ -7,7 +7,7 @@ import json
 import pandas as pd
 
 
-PATH = 'Helpers/Dataset/MC1.json'
+PATH = '../Dataset/MC1.json'
 
 
 # open dataset
@@ -49,11 +49,16 @@ nodes["type"] = nodes["type"].replace("nan", "Uncategorized")
 # 1. target_country: country of target node
 # 2. source_country: country of source node
 # 1. target_country
-links[]
+# creating 2 new columns based on source
+links = links.merge(nodes[['id', 'country']], how='left', left_on='source', right_on='id')
+links.rename(columns={'id': 'source_id', 'country': 'source_country'}, inplace=True)
+# creating 2 new columns based on target
+links = links.merge(nodes[['id', 'country']], how='left', left_on='target', right_on='id')
+links.rename(columns={'id': 'target_id', 'country': 'target_country'}, inplace=True)
 
 # ----------------------- saving to .csv -----------------------
 # saving nodes dataframe to csv
-nodes.to_csv("Helpers/Dataset/Nodes.csv", index=False)
+nodes.to_csv("../../Dataset/Nodes.csv", index=False)
 # saving links dataframe to csv
-links.to_csv("Helpers/Dataset/Links.csv", index=False)
+links.to_csv("../../Dataset/Links.csv", index=False)
 # --------------------------------------------------------------

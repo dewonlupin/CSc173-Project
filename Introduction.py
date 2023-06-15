@@ -5,8 +5,8 @@ from pyvis.network import Network
 import networkx as nx
 
 # ----------------------- Importing dataframes -----------------------
-nodes = pd.read_csv('../Dataset/Nodes.csv')
-links = pd.read_csv('../Dataset/Links.csv')
+nodes = pd.read_csv('Dataset/Nodes.csv')
+links = pd.read_csv('Dataset/Links.csv')
 # ---------------------------------------------------------------------
 
 HEIGHT = 700
@@ -128,8 +128,6 @@ elif len(key_choice) != 0:
 
 # creating the source to target charts
 #---------------------------------------------
-
-
 #---------------------------------------------
 
 # ---------------------------------------- Test Purpose ----------------------------------------

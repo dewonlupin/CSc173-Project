@@ -1,0 +1,464 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 1000px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#03DAC6", "id": "Faroe Islands Shrimp Shark", "label": "Faroe Islands Shrimp Shark", "shape": "box", "title": "Faroe Islands Shrimp Shark", "value": 10}, {"color": "#da03b3", "id": "979893388", "label": "979893388", "shape": "triangle", "title": "979893388"}, {"color": "#03DAC6", "id": "4", "label": "4", "shape": "box", "title": "4", "value": 10}, {"color": "#03DAC6", "id": "196159", "label": "196159", "shape": "box", "title": "196159", "value": 10}, {"color": "#03DAC6", "id": "9067", "label": "9067", "shape": "box", "title": "9067", "value": 10}, {"color": "#03DAC6", "id": "750975", "label": "750975", "shape": "box", "title": "750975", "value": 10}, {"color": "#03DAC6", "id": "69150209", "label": "69150209", "shape": "box", "title": "69150209", "value": 10}, {"color": "#03DAC6", "id": "5", "label": "5", "shape": "box", "title": "5", "value": 10}, {"color": "#03DAC6", "id": "Maria Mitchell", "label": "Maria Mitchell", "shape": "box", "title": "Maria Mitchell", "value": 10}, {"color": "#03DAC6", "id": "9", "label": "9", "shape": "box", "title": "9", "value": 10}, {"color": "#03DAC6", "id": "14bda3bb-9993-4265-97cc-1747808c144e", "label": "14bda3bb-9993-4265-97cc-1747808c144e", "shape": "box", "title": "14bda3bb-9993-4265-97cc-1747808c144e", "value": 10}, {"color": "#03DAC6", "id": "6731", "label": "6731", "shape": "box", "title": "6731", "value": 10}, {"color": "#03DAC6", "id": "665", "label": "665", "shape": "box", "title": "665", "value": 10}, {"color": "#03DAC6", "id": "947", "label": "947", "shape": "box", "title": "947", "value": 10}, {"color": "#03DAC6", "id": "Michael Compton", "label": "Michael Compton", "shape": "box", "title": "Michael Compton", "value": 10}, {"color": "#03DAC6", "id": "4348721", "label": "4348721", "shape": "box", "title": "4348721", "value": 10}, {"color": "#03DAC6", "id": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "label": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "shape": "box", "title": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "value": 10}, {"color": "#03DAC6", "id": "435054320", "label": "435054320", "shape": "box", "title": "435054320", "value": 10}, {"color": "#03DAC6", "id": "f21800ca-b3c9-404b-8438-3d75ea84c409", "label": "f21800ca-b3c9-404b-8438-3d75ea84c409", "shape": "box", "title": "f21800ca-b3c9-404b-8438-3d75ea84c409", "value": 10}, {"color": "#03DAC6", "id": "1560", "label": "1560", "shape": "box", "title": "1560", "value": 10}, {"color": "#03DAC6", "id": "Sept", "label": "Sept", "shape": "box", "title": "Sept", "value": 10}, {"color": "#03DAC6", "id": "John Gonzalez", "label": "John Gonzalez", "shape": "box", "title": "John Gonzalez", "value": 10}, {"color": "#03DAC6", "id": "png xi  Line", "label": "png xi  Line", "shape": "box", "title": "png xi  Line", "value": 10}, {"color": "#03DAC6", "id": "April", "label": "April", "shape": "box", "title": "April", "value": 10}, {"color": "#03DAC6", "id": "Jennifer Alvarez", "label": "Jennifer Alvarez", "shape": "box", "title": "Jennifer Alvarez", "value": 10}, {"color": "#03DAC6", "id": "49", "label": "49", "shape": "box", "title": "49", "value": 10}, {"color": "#03DAC6", "id": "34", "label": "34", "shape": "box", "title": "34", "value": 10}, {"color": "#03DAC6", "id": "Stephanie Hinton", "label": "Stephanie Hinton", "shape": "box", "title": "Stephanie Hinton", "value": 10}, {"color": "#03DAC6", "id": "672", "label": "672", "shape": "box", "title": "672", "value": 10}, {"color": "#03DAC6", "id": "Mar del Oeste Pic", "label": "Mar del Oeste Pic", "shape": "box", "title": "Mar del Oeste Pic", "value": 10}, {"color": "#03DAC6", "id": "98332", "label": "98332", "shape": "box", "title": "98332", "value": 10}, {"color": "#03DAC6", "id": "9786", "label": "9786", "shape": "box", "title": "9786", "value": 10}, {"color": "#03DAC6", "id": "Dana Goodwin", "label": "Dana Goodwin", "shape": "box", "title": "Dana Goodwin", "value": 10}, {"color": "#03DAC6", "id": "7023", "label": "7023", "shape": "box", "title": "7023", "value": 10}, {"color": "#03DAC6", "id": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "label": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "shape": "box", "title": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "value": 10}, {"color": "#03DAC6", "id": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "label": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "shape": "box", "title": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "value": 10}, {"color": "#03DAC6", "id": "Christopher Peterson", "label": "Christopher Peterson", "shape": "box", "title": "Christopher Peterson", "value": 10}, {"color": "#03DAC6", "id": "Abigail Foster", "label": "Abigail Foster", "shape": "box", "title": "Abigail Foster", "value": 10}, {"color": "#03DAC6", "id": "\u00e2\u0080\u009cU", "label": "\u00e2\u0080\u009cU", "shape": "box", "title": "\u00e2\u0080\u009cU", "value": 10}, {"color": "#03DAC6", "id": "Kelly Brown", "label": "Kelly Brown", "shape": "box", "title": "Kelly Brown", "value": 10}, {"color": "#03DAC6", "id": "ad8fe467-3759-4f53-bf6a-896a237d187f", "label": "ad8fe467-3759-4f53-bf6a-896a237d187f", "shape": "box", "title": "ad8fe467-3759-4f53-bf6a-896a237d187f", "value": 10}, {"color": "#03DAC6", "id": "Linda Sherman", "label": "Linda Sherman", "shape": "box", "title": "Linda Sherman", "value": 10}, {"color": "#03DAC6", "id": "3016", "label": "3016", "shape": "box", "title": "3016", "value": 10}, {"color": "#da03b3", "id": "Oceanfront Oasis Inc Carriers", "label": "Oceanfront Oasis Inc Carriers", "shape": "triangle", "title": "Oceanfront Oasis Inc Carriers"}, {"color": "#da03b3", "id": "months", "label": "months", "shape": "triangle", "title": "months"}, {"color": "#da03b3", "id": "Amy Wise", "label": "Amy Wise", "shape": "triangle", "title": "Amy Wise"}, {"color": "#da03b3", "id": "98703", "label": "98703", "shape": "triangle", "title": "98703"}, {"color": "#da03b3", "id": "567", "label": "567", "shape": "triangle", "title": "567"}, {"color": "#da03b3", "id": "990", "label": "990", "shape": "triangle", "title": "990"}, {"color": "#da03b3", "id": "23", "label": "23", "shape": "triangle", "title": "23"}, {"color": "#da03b3", "id": "Jennifer Reilly", "label": "Jennifer Reilly", "shape": "triangle", "title": "Jennifer Reilly"}, {"color": "#da03b3", "id": "Kristin Jones", "label": "Kristin Jones", "shape": "triangle", "title": "Kristin Jones"}, {"color": "#da03b3", "id": "Krystal Lee", "label": "Krystal Lee", "shape": "triangle", "title": "Krystal Lee"}, {"color": "#da03b3", "id": "ARA Contraalmirante Cordero", "label": "ARA Contraalmirante Cordero", "shape": "triangle", "title": "ARA Contraalmirante Cordero"}, {"color": "#da03b3", "id": "Irish Sea SRL Brothers", "label": "Irish Sea SRL Brothers", "shape": "triangle", "title": "Irish Sea SRL Brothers"}, {"color": "#da03b3", "id": "Romero Oyster NV Carriers", "label": "Romero Oyster NV Carriers", "shape": "triangle", "title": "Romero Oyster NV Carriers"}, {"color": "#da03b3", "id": "Sea Harvest", "label": "Sea Harvest", "shape": "triangle", "title": "Sea Harvest"}, {"color": "#da03b3", "id": "\u00e2\u0080\u009cBHF\u00e2", "label": "\u00e2\u0080\u009cBHF\u00e2", "shape": "triangle", "title": "\u00e2\u0080\u009cBHF\u00e2"}, {"color": "#da03b3", "id": "Madhya Pradesh Market BV", "label": "Madhya Pradesh Market BV", "shape": "triangle", "title": "Madhya Pradesh Market BV"}, {"color": "#da03b3", "id": "usa", "label": "usa", "shape": "triangle", "title": "usa"}, {"color": "#da03b3", "id": "418382", "label": "418382", "shape": "triangle", "title": "418382"}, {"color": "#da03b3", "id": "16927047", "label": "16927047", "shape": "triangle", "title": "16927047"}, {"color": "#da03b3", "id": "30041", "label": "30041", "shape": "triangle", "title": "30041"}, {"color": "#da03b3", "id": "6471708", "label": "6471708", "shape": "triangle", "title": "6471708"}, {"color": "#da03b3", "id": "520673", "label": "520673", "shape": "triangle", "title": "520673"}, {"color": "#da03b3", "id": "565431", "label": "565431", "shape": "triangle", "title": "565431"}, {"color": "#da03b3", "id": "Benton Ltd. Liability Co", "label": "Benton Ltd. Liability Co", "shape": "triangle", "title": "Benton Ltd. Liability Co"}, {"color": "#da03b3", "id": "ninety", "label": "ninety", "shape": "triangle", "title": "ninety"}, {"color": "#da03b3", "id": "90", "label": "90", "shape": "triangle", "title": "90"}, {"color": "#da03b3", "id": "days", "label": "days", "shape": "triangle", "title": "days"}, {"color": "#da03b3", "id": "sh rn y Corporation", "label": "sh rn y Corporation", "shape": "triangle", "title": "sh rn y Corporation"}, {"color": "#da03b3", "id": "822596165", "label": "822596165", "shape": "triangle", "title": "822596165"}, {"color": "#da03b3", "id": "5421", "label": "5421", "shape": "triangle", "title": "5421"}, {"color": "#da03b3", "id": "2913", "label": "2913", "shape": "triangle", "title": "2913"}, {"color": "#da03b3", "id": "Pez Dorado BV Logistics", "label": "Pez Dorado BV Logistics", "shape": "triangle", "title": "Pez Dorado BV Logistics"}, {"color": "#da03b3", "id": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "label": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "shape": "triangle", "title": "019d89a8-36be-4402-bf3c-d13cb982cf3f"}, {"color": "#da03b3", "id": "Ryabikova", "label": "Ryabikova", "shape": "triangle", "title": "Ryabikova"}, {"color": "#da03b3", "id": "Erica Hamilton", "label": "Erica Hamilton", "shape": "triangle", "title": "Erica Hamilton"}, {"color": "#da03b3", "id": "Michael Reed", "label": "Michael Reed", "shape": "triangle", "title": "Michael Reed"}, {"color": "#da03b3", "id": "Andrea Gibson", "label": "Andrea Gibson", "shape": "triangle", "title": "Andrea Gibson"}, {"color": "#da03b3", "id": "Kelsey Tucker", "label": "Kelsey Tucker", "shape": "triangle", "title": "Kelsey Tucker"}, {"color": "#da03b3", "id": "Ryan Lewis", "label": "Ryan Lewis", "shape": "triangle", "title": "Ryan Lewis"}, {"color": "#da03b3", "id": "Jessica Figueroa DDS", "label": "Jessica Figueroa DDS", "shape": "triangle", "title": "Jessica Figueroa DDS"}, {"color": "#da03b3", "id": "57", "label": "57", "shape": "triangle", "title": "57"}, {"color": "#da03b3", "id": "Luis Jones", "label": "Luis Jones", "shape": "triangle", "title": "Luis Jones"}, {"color": "#da03b3", "id": "c01c6a10-60c9-4f11-9409-aa04c3963826", "label": "c01c6a10-60c9-4f11-9409-aa04c3963826", "shape": "triangle", "title": "c01c6a10-60c9-4f11-9409-aa04c3963826"}, {"color": "#da03b3", "id": "17232", "label": "17232", "shape": "triangle", "title": "17232"}, {"color": "#da03b3", "id": "Derek Burke", "label": "Derek Burke", "shape": "triangle", "title": "Derek Burke"}, {"color": "#da03b3", "id": "John Barnes DDS", "label": "John Barnes DDS", "shape": "triangle", "title": "John Barnes DDS"}, {"color": "#da03b3", "id": "wgbh", "label": "wgbh", "shape": "triangle", "title": "wgbh"}, {"color": "#da03b3", "id": "brianbushard", "label": "brianbushard", "shape": "triangle", "title": "brianbushard"}, {"color": "#da03b3", "id": "Robert Shaffer", "label": "Robert Shaffer", "shape": "triangle", "title": "Robert Shaffer"}, {"color": "#da03b3", "id": "Jeremy Woodard", "label": "Jeremy Woodard", "shape": "triangle", "title": "Jeremy Woodard"}, {"color": "#da03b3", "id": "Paul Wiley", "label": "Paul Wiley", "shape": "triangle", "title": "Paul Wiley"}, {"color": "#da03b3", "id": "Miranda Long", "label": "Miranda Long", "shape": "triangle", "title": "Miranda Long"}, {"color": "#da03b3", "id": "Amanda Mckenzie", "label": "Amanda Mckenzie", "shape": "triangle", "title": "Amanda Mckenzie"}, {"color": "#da03b3", "id": "Michelle Kelley", "label": "Michelle Kelley", "shape": "triangle", "title": "Michelle Kelley"}, {"color": "#da03b3", "id": "Austin Simpson", "label": "Austin Simpson", "shape": "triangle", "title": "Austin Simpson"}, {"color": "#da03b3", "id": "su y CJSC Canal", "label": "su y CJSC Canal", "shape": "triangle", "title": "su y CJSC Canal"}, {"color": "#da03b3", "id": "Robert Vega", "label": "Robert Vega", "shape": "triangle", "title": "Robert Vega"}, {"color": "#da03b3", "id": "\u00e2\u0080\u0099\u00e2", "label": "\u00e2\u0080\u0099\u00e2", "shape": "triangle", "title": "\u00e2\u0080\u0099\u00e2"}, {"color": "#da03b3", "id": "Christopher Miller", "label": "Christopher Miller", "shape": "triangle", "title": "Christopher Miller"}, {"color": "#da03b3", "id": "\u00e2\u0080\u0098enticed\u00e2", "label": "\u00e2\u0080\u0098enticed\u00e2", "shape": "triangle", "title": "\u00e2\u0080\u0098enticed\u00e2"}, {"color": "#da03b3", "id": "8814", "label": "8814", "shape": "triangle", "title": "8814"}, {"color": "#da03b3", "id": "25851337", "label": "25851337", "shape": "triangle", "title": "25851337"}, {"color": "#da03b3", "id": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "label": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "shape": "triangle", "title": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c"}, {"color": "#da03b3", "id": "\u00e2\u0080\u009cbracatinga", "label": "\u00e2\u0080\u009cbracatinga", "shape": "triangle", "title": "\u00e2\u0080\u009cbracatinga"}, {"color": "#da03b3", "id": "merida\u00e2", "label": "merida\u00e2", "shape": "triangle", "title": "merida\u00e2"}, {"color": "#da03b3", "id": "ROBYN BECK", "label": "ROBYN BECK", "shape": "triangle", "title": "ROBYN BECK"}, {"color": "#da03b3", "id": "13d79d632036", "label": "13d79d632036", "shape": "triangle", "title": "13d79d632036"}, {"color": "#da03b3", "id": "20370602035941", "label": "20370602035941", "shape": "triangle", "title": "20370602035941"}, {"color": "#da03b3", "id": "526269", "label": "526269", "shape": "triangle", "title": "526269"}, {"color": "#da03b3", "id": "3404599", "label": "3404599", "shape": "triangle", "title": "3404599"}, {"color": "#da03b3", "id": "7775", "label": "7775", "shape": "triangle", "title": "7775"}, {"color": "#da03b3", "id": "Sonia Fisheries Pvt", "label": "Sonia Fisheries Pvt", "shape": "triangle", "title": "Sonia Fisheries Pvt"}, {"color": "#03DAC6", "id": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "label": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "shape": "box", "title": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "value": 10}, {"color": "#03DAC6", "id": "Mary Horton", "label": "Mary Horton", "shape": "box", "title": "Mary Horton", "value": 10}, {"color": "#03DAC6", "id": "67a59fab-710a-4992-b6d0-d581fd9dceba", "label": "67a59fab-710a-4992-b6d0-d581fd9dceba", "shape": "box", "title": "67a59fab-710a-4992-b6d0-d581fd9dceba", "value": 10}, {"color": "#03DAC6", "id": "1972868", "label": "1972868", "shape": "box", "title": "1972868", "value": 10}, {"color": "#03DAC6", "id": "Audrey Romero", "label": "Audrey Romero", "shape": "box", "title": "Audrey Romero", "value": 10}, {"color": "#03DAC6", "id": "Stephanie Quinn", "label": "Stephanie Quinn", "shape": "box", "title": "Stephanie Quinn", "value": 10}, {"color": "#03DAC6", "id": "9590898", "label": "9590898", "shape": "box", "title": "9590898", "value": 10}, {"color": "#03DAC6", "id": "Joshua Garrett", "label": "Joshua Garrett", "shape": "box", "title": "Joshua Garrett", "value": 10}, {"color": "#03DAC6", "id": "21240092", "label": "21240092", "shape": "box", "title": "21240092", "value": 10}, {"color": "#03DAC6", "id": "6335187", "label": "6335187", "shape": "box", "title": "6335187", "value": 10}, {"color": "#03DAC6", "id": "Jessica Owens", "label": "Jessica Owens", "shape": "box", "title": "Jessica Owens", "value": 10}, {"color": "#03DAC6", "id": "7548555", "label": "7548555", "shape": "box", "title": "7548555", "value": 10}, {"color": "#03DAC6", "id": "36744944", "label": "36744944", "shape": "box", "title": "36744944", "value": 10}, {"color": "#03DAC6", "id": "Shawna Welch", "label": "Shawna Welch", "shape": "box", "title": "Shawna Welch", "value": 10}, {"color": "#03DAC6", "id": "903311212", "label": "903311212", "shape": "box", "title": "903311212", "value": 10}, {"color": "#03DAC6", "id": "23990411", "label": "23990411", "shape": "box", "title": "23990411", "value": 10}, {"color": "#03DAC6", "id": "415053", "label": "415053", "shape": "box", "title": "415053", "value": 10}, {"color": "#03DAC6", "id": "665912557", "label": "665912557", "shape": "box", "title": "665912557", "value": 10}, {"color": "#03DAC6", "id": "327277616", "label": "327277616", "shape": "box", "title": "327277616", "value": 10}, {"color": "#03DAC6", "id": "58877070", "label": "58877070", "shape": "box", "title": "58877070", "value": 10}, {"color": "#03DAC6", "id": "oceana", "label": "oceana", "shape": "box", "title": "oceana", "value": 10}, {"color": "#03DAC6", "id": "Blake Smith", "label": "Blake Smith", "shape": "box", "title": "Blake Smith", "value": 10}, {"color": "#03DAC6", "id": "Makayla Anderson", "label": "Makayla Anderson", "shape": "box", "title": "Makayla Anderson", "value": 10}, {"color": "#03DAC6", "id": "4657860", "label": "4657860", "shape": "box", "title": "4657860", "value": 10}, {"color": "#03DAC6", "id": "Lisa Rocha", "label": "Lisa Rocha", "shape": "box", "title": "Lisa Rocha", "value": 10}, {"color": "#03DAC6", "id": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "label": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "shape": "box", "title": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "value": 10}, {"color": "#03DAC6", "id": "542341", "label": "542341", "shape": "box", "title": "542341", "value": 10}, {"color": "#03DAC6", "id": "9979944", "label": "9979944", "shape": "box", "title": "9979944", "value": 10}, {"color": "#03DAC6", "id": "Stephanie Wiley", "label": "Stephanie Wiley", "shape": "box", "title": "Stephanie Wiley", "value": 10}, {"color": "#03DAC6", "id": "Lisa Ward", "label": "Lisa Ward", "shape": "box", "title": "Lisa Ward", "value": 10}, {"color": "#03DAC6", "id": "William Fernandez", "label": "William Fernandez", "shape": "box", "title": "William Fernandez", "value": 10}, {"color": "#03DAC6", "id": "8634589", "label": "8634589", "shape": "box", "title": "8634589", "value": 10}, {"color": "#03DAC6", "id": "9345", "label": "9345", "shape": "box", "title": "9345", "value": 10}, {"color": "#03DAC6", "id": "Seth Kelley", "label": "Seth Kelley", "shape": "box", "title": "Seth Kelley", "value": 10}, {"color": "#03DAC6", "id": "739622", "label": "739622", "shape": "box", "title": "739622", "value": 10}, {"color": "#03DAC6", "id": "7675191", "label": "7675191", "shape": "box", "title": "7675191", "value": 10}, {"color": "#03DAC6", "id": "4356", "label": "4356", "shape": "box", "title": "4356", "value": 10}, {"color": "#03DAC6", "id": "6070651", "label": "6070651", "shape": "box", "title": "6070651", "value": 10}, {"color": "#03DAC6", "id": "156", "label": "156", "shape": "box", "title": "156", "value": 10}, {"color": "#03DAC6", "id": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "label": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "shape": "box", "title": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "value": 10}, {"color": "#03DAC6", "id": "f656719b-783e-452b-801f-f60895068b23", "label": "f656719b-783e-452b-801f-f60895068b23", "shape": "box", "title": "f656719b-783e-452b-801f-f60895068b23", "value": 10}, {"color": "#03DAC6", "id": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "label": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "shape": "box", "title": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "value": 10}, {"color": "#03DAC6", "id": "Feb", "label": "Feb", "shape": "box", "title": "Feb", "value": 10}, {"color": "#03DAC6", "id": "436460757", "label": "436460757", "shape": "box", "title": "436460757", "value": 10}, {"color": "#03DAC6", "id": "912077", "label": "912077", "shape": "box", "title": "912077", "value": 10}, {"color": "#03DAC6", "id": "Danielle Jensen", "label": "Danielle Jensen", "shape": "box", "title": "Danielle Jensen", "value": 10}, {"color": "#03DAC6", "id": "76104890", "label": "76104890", "shape": "box", "title": "76104890", "value": 10}, {"color": "#03DAC6", "id": "Sudd Swamp  Wave AS Freight ", "label": "Sudd Swamp  Wave AS Freight ", "shape": "box", "title": "Sudd Swamp  Wave AS Freight ", "value": 10}, {"color": "#03DAC6", "id": "74026296", "label": "74026296", "shape": "box", "title": "74026296", "value": 10}, {"color": "#03DAC6", "id": "Diane Forbes", "label": "Diane Forbes", "shape": "box", "title": "Diane Forbes", "value": 10}, {"color": "#03DAC6", "id": "Dawn Robinson", "label": "Dawn Robinson", "shape": "box", "title": "Dawn Robinson", "value": 10}, {"color": "#03DAC6", "id": "076", "label": "076", "shape": "box", "title": "076", "value": 10}, {"color": "#03DAC6", "id": "b8567859-bf54-49fd-8332-5775e19c65af", "label": "b8567859-bf54-49fd-8332-5775e19c65af", "shape": "box", "title": "b8567859-bf54-49fd-8332-5775e19c65af", "value": 10}, {"color": "#03DAC6", "id": "SeaSpray Wave SRL Solutions", "label": "SeaSpray Wave SRL Solutions", "shape": "box", "title": "SeaSpray Wave SRL Solutions", "value": 10}, {"color": "#03DAC6", "id": "Ocean Fisheries Llc", "label": "Ocean Fisheries Llc", "shape": "box", "title": "Ocean Fisheries Llc", "value": 10}, {"color": "#03DAC6", "id": "Estrella de Coral Ltd. Corporation Logistics", "label": "Estrella de Coral Ltd. Corporation Logistics", "shape": "box", "title": "Estrella de Coral Ltd. Corporation Logistics", "value": 10}, {"color": "#03DAC6", "id": "Seafood", "label": "Seafood", "shape": "box", "title": "Seafood", "value": 10}, {"color": "#03DAC6", "id": "Caribbean", "label": "Caribbean", "shape": "box", "title": "Caribbean", "value": 10}, {"color": "#03DAC6", "id": "\u00e2\u0080\u009cCompliance", "label": "\u00e2\u0080\u009cCompliance", "shape": "box", "title": "\u00e2\u0080\u009cCompliance", "value": 10}, {"color": "#03DAC6", "id": "Forwading S.A. de C.V.", "label": "Forwading S.A. de C.V.", "shape": "box", "title": "Forwading S.A. de C.V.", "value": 10}, {"color": "#03DAC6", "id": "\u00e2\u0080\u009cUS", "label": "\u00e2\u0080\u009cUS", "shape": "box", "title": "\u00e2\u0080\u009cUS", "value": 10}, {"color": "#03DAC6", "id": "Lake Tanganyika Sea AS Shipping", "label": "Lake Tanganyika Sea AS Shipping", "shape": "box", "title": "Lake Tanganyika Sea AS Shipping", "value": 10}, {"color": "#03DAC6", "id": "MV", "label": "MV", "shape": "box", "title": "MV", "value": 10}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#018786", "from": "Faroe Islands Shrimp Shark", "title": "partnership", "to": "979893388", "value": 0.8558467}, {"arrows": "to", "color": "#018786", "from": "4", "title": "family_relationship", "to": "979893388", "value": 0.8639725}, {"arrows": "to", "color": "#018786", "from": "196159", "title": "family_relationship", "to": "979893388", "value": 0.8560038}, {"arrows": "to", "color": "#018786", "from": "9067", "title": "family_relationship", "to": "979893388", "value": 0.87009597}, {"arrows": "to", "color": "#018786", "from": "750975", "title": "family_relationship", "to": "979893388", "value": 0.8478948}, {"arrows": "to", "color": "#018786", "from": "750975", "title": "family_relationship", "to": "979893388", "value": 0.8589815}, {"arrows": "to", "color": "#018786", "from": "69150209", "title": "partnership", "to": "979893388", "value": 0.8604943}, {"arrows": "to", "color": "#018786", "from": "5", "title": "family_relationship", "to": "979893388", "value": 0.959009}, {"arrows": "to", "color": "#018786", "from": "Maria Mitchell", "title": "partnership", "to": "979893388", "value": 0.8317078}, {"arrows": "to", "color": "#018786", "from": "9", "title": "ownership", "to": "979893388", "value": 0.81732166}, {"arrows": "to", "color": "#018786", "from": "14bda3bb-9993-4265-97cc-1747808c144e", "title": "family_relationship", "to": "979893388", "value": 0.8278751}, {"arrows": "to", "color": "#018786", "from": "6731", "title": "partnership", "to": "979893388", "value": 0.8362729}, {"arrows": "to", "color": "#018786", "from": "665", "title": "partnership", "to": "979893388", "value": 0.8804744}, {"arrows": "to", "color": "#018786", "from": "947", "title": "family_relationship", "to": "979893388", "value": 0.83156615}, {"arrows": "to", "color": "#018786", "from": "Michael Compton", "title": "family_relationship", "to": "979893388", "value": 0.82857007}, {"arrows": "to", "color": "#018786", "from": "4348721", "title": "family_relationship", "to": "979893388", "value": 0.82456464}, {"arrows": "to", "color": "#018786", "from": "b20c0baf-8530-4a84-a5b6-8da324ebebdb", "title": "family_relationship", "to": "979893388", "value": 0.8527388}, {"arrows": "to", "color": "#018786", "from": "435054320", "title": "family_relationship", "to": "979893388", "value": 0.8949433}, {"arrows": "to", "color": "#018786", "from": "f21800ca-b3c9-404b-8438-3d75ea84c409", "title": "ownership", "to": "979893388", "value": 0.9035101}, {"arrows": "to", "color": "#018786", "from": "1560", "title": "family_relationship", "to": "979893388", "value": 0.8778388}, {"arrows": "to", "color": "#018786", "from": "Sept", "title": "family_relationship", "to": "979893388", "value": 0.9250021}, {"arrows": "to", "color": "#018786", "from": "John Gonzalez", "title": "family_relationship", "to": "979893388", "value": 0.80070466}, {"arrows": "to", "color": "#018786", "from": "png xi  Line", "title": "membership", "to": "979893388", "value": 0.8548082}, {"arrows": "to", "color": "#018786", "from": "April", "title": "membership", "to": "979893388", "value": 0.8269599}, {"arrows": "to", "color": "#018786", "from": "Jennifer Alvarez", "title": "membership", "to": "979893388", "value": 0.8039211}, {"arrows": "to", "color": "#018786", "from": "49", "title": "family_relationship", "to": "979893388", "value": 0.88690263}, {"arrows": "to", "color": "#018786", "from": "34", "title": "ownership", "to": "979893388", "value": 0.8349277}, {"arrows": "to", "color": "#018786", "from": "Stephanie Hinton", "title": "membership", "to": "979893388", "value": 0.8064336}, {"arrows": "to", "color": "#018786", "from": "672", "title": "membership", "to": "979893388", "value": 0.8599659}, {"arrows": "to", "color": "#018786", "from": "Mar del Oeste Pic", "title": "membership", "to": "979893388", "value": 0.8568431}, {"arrows": "to", "color": "#018786", "from": "Mar del Oeste Pic", "title": "ownership", "to": "979893388", "value": 0.81371176}, {"arrows": "to", "color": "#018786", "from": "Mar del Oeste Pic", "title": "family_relationship", "to": "979893388", "value": 0.8361138}, {"arrows": "to", "color": "#018786", "from": "Mar del Oeste Pic", "title": "membership", "to": "979893388", "value": 0.85297817}, {"arrows": "to", "color": "#018786", "from": "Mar del Oeste Pic", "title": "membership", "to": "979893388", "value": 0.8073796}, {"arrows": "to", "color": "#018786", "from": "98332", "title": "membership", "to": "979893388", "value": 0.8106895}, {"arrows": "to", "color": "#018786", "from": "9786", "title": "partnership", "to": "979893388", "value": 0.8377153}, {"arrows": "to", "color": "#018786", "from": "Dana Goodwin", "title": "family_relationship", "to": "979893388", "value": 0.8124407}, {"arrows": "to", "color": "#018786", "from": "7023", "title": "membership", "to": "979893388", "value": 0.83087754}, {"arrows": "to", "color": "#018786", "from": "17c99d9d-7049-4ebb-8a2a-f3d39cc42870", "title": "ownership", "to": "979893388", "value": 0.8048147}, {"arrows": "to", "color": "#018786", "from": "c14a3dc1-59d0-4b92-b9f3-331e51912787", "title": "family_relationship", "to": "979893388", "value": 0.822751}, {"arrows": "to", "color": "#018786", "from": "Christopher Peterson", "title": "ownership", "to": "979893388", "value": 0.83825815}, {"arrows": "to", "color": "#018786", "from": "Abigail Foster", "title": "membership", "to": "979893388", "value": 0.8423662}, {"arrows": "to", "color": "#018786", "from": "\u00e2\u0080\u009cU", "title": "membership", "to": "979893388", "value": 0.8791356}, {"arrows": "to", "color": "#018786", "from": "Kelly Brown", "title": "partnership", "to": "979893388", "value": 0.8190675}, {"arrows": "to", "color": "#018786", "from": "ad8fe467-3759-4f53-bf6a-896a237d187f", "title": "family_relationship", "to": "979893388", "value": 0.9028851}, {"arrows": "to", "color": "#018786", "from": "Linda Sherman", "title": "membership", "to": "979893388", "value": 0.853533}, {"arrows": "to", "color": "#018786", "from": "3016", "title": "family_relationship", "to": "979893388", "value": 0.8539279}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "Oceanfront Oasis Inc Carriers", "value": 0.8363937}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "months", "value": 0.9010467}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Sept", "value": 0.83718294}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "John Gonzalez", "value": 0.8596191}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Amy Wise", "value": 0.8037018}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "34", "value": 0.84400237}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "98703", "value": 0.8669315}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "Dana Goodwin", "value": 0.8527762}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "567", "value": 0.8544229}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "990", "value": 0.8737811}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "23", "value": 0.8380823}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "23", "value": 0.8380823}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Jennifer Reilly", "value": 0.8509253}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "Kristin Jones", "value": 0.9245638}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Krystal Lee", "value": 0.8067644}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "ARA Contraalmirante Cordero", "value": 0.8316039}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Irish Sea SRL Brothers", "value": 0.80921775}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Romero Oyster NV Carriers", "value": 0.85296345}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Sea Harvest", "value": 0.90525395}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "\u00e2\u0080\u009cBHF\u00e2", "value": 0.9314324}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Madhya Pradesh Market BV", "value": 0.8807473}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "usa", "value": 0.8190544}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "4", "value": 0.8403481}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "418382", "value": 0.81654143}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "16927047", "value": 0.82753277}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "30041", "value": 0.856693}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "6471708", "value": 0.86487657}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "520673", "value": 0.83330137}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "565431", "value": 0.8108792}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "Benton Ltd. Liability Co", "value": 0.92848116}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "ninety", "value": 0.85535985}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "90", "value": 0.89930433}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "90", "value": 0.89930433}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "days", "value": 0.9455313}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "sh rn y Corporation", "value": 0.8221979}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "822596165", "value": 0.933341}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "5421", "value": 0.9693028}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "2913", "value": 0.8672797}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "Pez Dorado BV Logistics", "value": 0.9098652}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "019d89a8-36be-4402-bf3c-d13cb982cf3f", "value": 0.9013529}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "Ryabikova", "value": 0.86339736}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "Erica Hamilton", "value": 0.8471957}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Michael Reed", "value": 0.8013556}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Andrea Gibson", "value": 0.800491}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Kelsey Tucker", "value": 0.9103631}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Ryan Lewis", "value": 0.8221714}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Jessica Figueroa DDS", "value": 0.82628155}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "57", "value": 0.9378966}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "Luis Jones", "value": 0.9591203}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "c01c6a10-60c9-4f11-9409-aa04c3963826", "value": 0.9087362}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "17232", "value": 0.9355846}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "Derek Burke", "value": 0.88688254}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "John Barnes DDS", "value": 0.8241445}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "wgbh", "value": 0.8992002}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "brianbushard", "value": 0.8138306}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Robert Shaffer", "value": 0.86923563}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Jeremy Woodard", "value": 0.88034105}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Paul Wiley", "value": 0.81853545}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "Miranda Long", "value": 0.8148093}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Amanda Mckenzie", "value": 0.8730826}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Michelle Kelley", "value": 0.86393744}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Austin Simpson", "value": 0.8872774}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "su y CJSC Canal", "value": 0.8099027}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "Robert Vega", "value": 0.83982015}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "\u00e2\u0080\u0099\u00e2", "value": 0.8082725}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Christopher Miller", "value": 0.8689309}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "\u00e2\u0080\u0098enticed\u00e2", "value": 0.8718408}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "8814", "value": 0.8829086}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "25851337", "value": 0.81509984}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "membership", "to": "b1a0ee2a-0e6d-48c2-b639-032e4648fa5c", "value": 0.8050555}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "\u00e2\u0080\u009cbracatinga", "value": 0.8989898}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "merida\u00e2", "value": 0.9245712}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "ROBYN BECK", "value": 0.8268199}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "ownership", "to": "13d79d632036", "value": 0.88416487}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "partnership", "to": "20370602035941", "value": 0.8012673}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "526269", "value": 0.8520045}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "3404599", "value": 0.9197402}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "7775", "value": 0.9553749}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Faroe Islands Shrimp Shark", "value": 0.84861827}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Sonia Fisheries Pvt", "value": 0.8305041}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "png xi  Line", "value": 0.8892602}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "png xi  Line", "value": 0.81140435}, {"arrows": "to", "color": "#018786", "from": "979893388", "title": "family_relationship", "to": "Mar del Oeste Pic", "value": 0.85570407}, {"arrows": "to", "color": "#018786", "from": "e1d7b4ac-ed31-42a4-9375-4afb0f78f276", "title": "family_relationship", "to": "979893388", "value": 0.82122797}, {"arrows": "to", "color": "#018786", "from": "Mary Horton", "title": "family_relationship", "to": "979893388", "value": 0.92963344}, {"arrows": "to", "color": "#018786", "from": "67a59fab-710a-4992-b6d0-d581fd9dceba", "title": "membership", "to": "979893388", "value": 0.8601455}, {"arrows": "to", "color": "#018786", "from": "1972868", "title": "ownership", "to": "979893388", "value": 0.8593402}, {"arrows": "to", "color": "#018786", "from": "Audrey Romero", "title": "family_relationship", "to": "979893388", "value": 0.9404788}, {"arrows": "to", "color": "#018786", "from": "Stephanie Quinn", "title": "membership", "to": "979893388", "value": 0.8554047}, {"arrows": "to", "color": "#018786", "from": "9590898", "title": "ownership", "to": "979893388", "value": 0.8504263}, {"arrows": "to", "color": "#018786", "from": "Joshua Garrett", "title": "ownership", "to": "979893388", "value": 0.8359313}, {"arrows": "to", "color": "#018786", "from": "21240092", "title": "membership", "to": "979893388", "value": 0.9057934}, {"arrows": "to", "color": "#018786", "from": "6335187", "title": "partnership", "to": "979893388", "value": 0.83455515}, {"arrows": "to", "color": "#018786", "from": "Jessica Owens", "title": "membership", "to": "979893388", "value": 0.874296}, {"arrows": "to", "color": "#018786", "from": "7548555", "title": "family_relationship", "to": "979893388", "value": 0.80463594}, {"arrows": "to", "color": "#018786", "from": "36744944", "title": "membership", "to": "979893388", "value": 0.90055144}, {"arrows": "to", "color": "#018786", "from": "Shawna Welch", "title": "family_relationship", "to": "979893388", "value": 0.86786324}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "family_relationship", "to": "979893388", "value": 0.8570701}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "membership", "to": "979893388", "value": 0.8110981}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "membership", "to": "979893388", "value": 0.9051388}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "membership", "to": "979893388", "value": 0.8002924}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "family_relationship", "to": "979893388", "value": 0.81753856}, {"arrows": "to", "color": "#018786", "from": "903311212", "title": "membership", "to": "979893388", "value": 0.80143344}, {"arrows": "to", "color": "#018786", "from": "23990411", "title": "membership", "to": "979893388", "value": 0.9491618}, {"arrows": "to", "color": "#018786", "from": "415053", "title": "family_relationship", "to": "979893388", "value": 0.8782817}, {"arrows": "to", "color": "#018786", "from": "665912557", "title": "family_relationship", "to": "979893388", "value": 0.98395973}, {"arrows": "to", "color": "#018786", "from": "327277616", "title": "family_relationship", "to": "979893388", "value": 0.8288813}, {"arrows": "to", "color": "#018786", "from": "58877070", "title": "partnership", "to": "979893388", "value": 0.8664461}, {"arrows": "to", "color": "#018786", "from": "usa", "title": "membership", "to": "979893388", "value": 0.87294304}, {"arrows": "to", "color": "#018786", "from": "oceana", "title": "membership", "to": "979893388", "value": 0.8677315}, {"arrows": "to", "color": "#018786", "from": "Blake Smith", "title": "family_relationship", "to": "979893388", "value": 0.82644343}, {"arrows": "to", "color": "#018786", "from": "Makayla Anderson", "title": "membership", "to": "979893388", "value": 0.81223625}, {"arrows": "to", "color": "#018786", "from": "4657860", "title": "membership", "to": "979893388", "value": 0.80191934}, {"arrows": "to", "color": "#018786", "from": "Lisa Rocha", "title": "partnership", "to": "979893388", "value": 0.8415001}, {"arrows": "to", "color": "#018786", "from": "6f59e8d7-8f5d-4a7d-a3a4-50ddcb7ad9ad", "title": "partnership", "to": "979893388", "value": 0.95712304}, {"arrows": "to", "color": "#018786", "from": "542341", "title": "partnership", "to": "979893388", "value": 0.8511472}, {"arrows": "to", "color": "#018786", "from": "Erica Hamilton", "title": "ownership", "to": "979893388", "value": 0.8900573}, {"arrows": "to", "color": "#018786", "from": "9979944", "title": "membership", "to": "979893388", "value": 0.9364655}, {"arrows": "to", "color": "#018786", "from": "Stephanie Wiley", "title": "membership", "to": "979893388", "value": 0.9401714}, {"arrows": "to", "color": "#018786", "from": "Lisa Ward", "title": "membership", "to": "979893388", "value": 0.9658436}, {"arrows": "to", "color": "#018786", "from": "William Fernandez", "title": "membership", "to": "979893388", "value": 0.9564544}, {"arrows": "to", "color": "#018786", "from": "8634589", "title": "membership", "to": "979893388", "value": 0.9246899}, {"arrows": "to", "color": "#018786", "from": "9345", "title": "ownership", "to": "979893388", "value": 0.819125}, {"arrows": "to", "color": "#018786", "from": "Seth Kelley", "title": "family_relationship", "to": "979893388", "value": 0.82787496}, {"arrows": "to", "color": "#018786", "from": "739622", "title": "membership", "to": "979893388", "value": 0.8546537}, {"arrows": "to", "color": "#018786", "from": "7675191", "title": "membership", "to": "979893388", "value": 0.84073246}, {"arrows": "to", "color": "#018786", "from": "4356", "title": "membership", "to": "979893388", "value": 0.82611614}, {"arrows": "to", "color": "#018786", "from": "6070651", "title": "partnership", "to": "979893388", "value": 0.8969305}, {"arrows": "to", "color": "#018786", "from": "c01c6a10-60c9-4f11-9409-aa04c3963826", "title": "partnership", "to": "979893388", "value": 0.90000683}, {"arrows": "to", "color": "#018786", "from": "156", "title": "partnership", "to": "979893388", "value": 0.8817072}, {"arrows": "to", "color": "#018786", "from": "1eb512b7-c4ce-4b7e-9965-2236bf1afc9e", "title": "partnership", "to": "979893388", "value": 0.8684314}, {"arrows": "to", "color": "#018786", "from": "f656719b-783e-452b-801f-f60895068b23", "title": "membership", "to": "979893388", "value": 0.8569629}, {"arrows": "to", "color": "#018786", "from": "b1d6e468-f3c5-45f3-90a2-e76b2f329b2d", "title": "family_relationship", "to": "979893388", "value": 0.9433061}, {"arrows": "to", "color": "#018786", "from": "Feb", "title": "family_relationship", "to": "979893388", "value": 0.86859995}, {"arrows": "to", "color": "#018786", "from": "436460757", "title": "family_relationship", "to": "979893388", "value": 0.8729532}, {"arrows": "to", "color": "#018786", "from": "912077", "title": "membership", "to": "979893388", "value": 0.84540343}, {"arrows": "to", "color": "#018786", "from": "Danielle Jensen", "title": "family_relationship", "to": "979893388", "value": 0.80557436}, {"arrows": "to", "color": "#018786", "from": "76104890", "title": "membership", "to": "979893388", "value": 0.81974775}, {"arrows": "to", "color": "#018786", "from": "Sudd Swamp  Wave AS Freight ", "title": "membership", "to": "979893388", "value": 0.8497577}, {"arrows": "to", "color": "#018786", "from": "74026296", "title": "membership", "to": "979893388", "value": 0.8230321}, {"arrows": "to", "color": "#018786", "from": "Diane Forbes", "title": "membership", "to": "979893388", "value": 0.8604429}, {"arrows": "to", "color": "#018786", "from": "Dawn Robinson", "title": "membership", "to": "979893388", "value": 0.8768208}, {"arrows": "to", "color": "#018786", "from": "076", "title": "family_relationship", "to": "979893388", "value": 0.8539176}, {"arrows": "to", "color": "#018786", "from": "b8567859-bf54-49fd-8332-5775e19c65af", "title": "family_relationship", "to": "979893388", "value": 0.84869397}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "membership", "to": "979893388", "value": 0.8700393}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "membership", "to": "979893388", "value": 0.8115935}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "membership", "to": "979893388", "value": 0.85199714}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "family_relationship", "to": "979893388", "value": 0.9394672}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "membership", "to": "979893388", "value": 0.8305527}, {"arrows": "to", "color": "#018786", "from": "SeaSpray Wave SRL Solutions", "title": "membership", "to": "979893388", "value": 0.8155429}, {"arrows": "to", "color": "#018786", "from": "Ocean Fisheries Llc", "title": "ownership", "to": "979893388", "value": 0.8389201}, {"arrows": "to", "color": "#018786", "from": "Ocean Fisheries Llc", "title": "family_relationship", "to": "979893388", "value": 0.8307202}, {"arrows": "to", "color": "#018786", "from": "Estrella de Coral Ltd. Corporation Logistics", "title": "partnership", "to": "979893388", "value": 0.9095123}, {"arrows": "to", "color": "#018786", "from": "Seafood", "title": "family_relationship", "to": "979893388", "value": 0.88370514}, {"arrows": "to", "color": "#018786", "from": "Caribbean", "title": "family_relationship", "to": "979893388", "value": 0.8315047}, {"arrows": "to", "color": "#018786", "from": "\u00e2\u0080\u009cCompliance", "title": "family_relationship", "to": "979893388", "value": 0.8685694}, {"arrows": "to", "color": "#018786", "from": "Forwading S.A. de C.V.", "title": "membership", "to": "979893388", "value": 0.88581204}, {"arrows": "to", "color": "#018786", "from": "\u00e2\u0080\u009cUS", "title": "membership", "to": "979893388", "value": 0.8988331}, {"arrows": "to", "color": "#018786", "from": "Lake Tanganyika Sea AS Shipping", "title": "family_relationship", "to": "979893388", "value": 0.8303668}, {"arrows": "to", "color": "#018786", "from": "MV", "title": "family_relationship", "to": "979893388", "value": 0.90409166}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "barnesHut": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.1,
+            "damping": 0.02,
+            "gravitationalConstant": -80000,
+            "springConstant": 0.001,
+            "springLength": 100
+        },
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
