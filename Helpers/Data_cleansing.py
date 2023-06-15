@@ -45,6 +45,7 @@ nodes["country"] = nodes["country"].replace("nan", "Unknown")
 # replacing None value of nodes["type"] with "Uncategorized"
 nodes["type"] = nodes["type"].replace("nan", "Uncategorized")
 
+links.to_csv("../Dataset/PreMergeLinks.csv", index=False)
 # creating two more columns in links
 # 1. target_country: country of target node
 # 2. source_country: country of source node
@@ -58,7 +59,7 @@ links.rename(columns={'id': 'target_id', 'country': 'target_country'}, inplace=T
 
 # ----------------------- saving to .csv -----------------------
 # saving nodes dataframe to csv
-nodes.to_csv("../../Dataset/Nodes.csv", index=False)
+nodes.to_csv("../Dataset/Nodes.csv", index=False)
 # saving links dataframe to csv
-links.to_csv("../../Dataset/Links.csv", index=False)
+links.to_csv("../Dataset/Links.csv", index=False)
 # --------------------------------------------------------------

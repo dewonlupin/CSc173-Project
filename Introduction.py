@@ -6,7 +6,7 @@ import networkx as nx
 
 # ----------------------- Importing dataframes -----------------------
 nodes = pd.read_csv('Dataset/Nodes.csv')
-links = pd.read_csv('Dataset/Links.csv')
+links = pd.read_csv('Dataset/PreMergeLinks.csv')
 # ---------------------------------------------------------------------
 
 HEIGHT = 700
