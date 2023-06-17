@@ -20,7 +20,7 @@ st.divider()
 a, b, c = st.columns(3)
 
 # Slider for confidence score threshold
-conf_threshold = b.slider('Weight threshold', min_value=0.0, max_value=1.0, value=0.28, step=0.001)
+conf_threshold = b.slider('Weight threshold', min_value=0.00, max_value=1.0, value=0.028, step=0.001)
 
 choice = c.checkbox("Turn on animations:")
 
@@ -57,14 +57,27 @@ net.force_atlas_2based(gravity=-10, central_gravity=0.001,
 # ----------------------------------- main Graph logic -----------------------------------
 # Create the graph
 graph_type = nx.MultiDiGraph()
-graph = nx.from_pandas_edgelist(df, 'source', 'target', edge_key='key',
-                            edge_attr=True, create_using=graph_type)
+graph = nx.from_pandas_edgelist(df, 'source', 'target', edge_key='type',
+                            edge_attr='weight', create_using=graph_type)
+
+nodes_of_interest = set(eti_choice)
+
+source_list = []
+target_list = []
+edge_type_list = []
 
 # Find all nodes connected to entities of interest
-nodes_of_interest = set(eti_choice)
 for entity in eti_choice:
     if entity in graph:
-        nodes_of_interest.update(graph.neighbors(entity))
+        for neighbor in graph[entity]:
+            edge_data = graph.get_edge_data(entity, neighbor)
+            for edge_type, edge_values in edge_data.items():
+                if 'weight' in edge_values and edge_values['weight'] >= conf_threshold:
+                    # st.write(f"[ {entity} ---->   {neighbor} ] ====> Type: {edge_type}")
+                    source_list.append(entity)
+                    target_list.append(neighbor)
+                    edge_type_list.append(edge_type)
+                    nodes_of_interest.add(neighbor)
 
 # Create subgraph with nodes of interest
 sub_graph = graph.subgraph(nodes_of_interest)
@@ -101,5 +114,11 @@ net.save_graph(html_file)
 # Display the graph
 HtmlFile = open(html_file, 'r', encoding='utf-8')
 source_code = HtmlFile.read()
-components.html(source_code, height = HEIGHT, width=WIDTH+200)
+components.html(source_code, height = HEIGHT, width=WIDTH+70)
 # ----------------------------------- Saving Graph -----------------------------------
+
+# showing relation between source and target nodes
+graph_dict = {'Source':source_list, 'Relation':edge_type_list, 'Target':target_list}
+
+graph_df = pd.DataFrame(graph_dict)
+st.dataframe(graph_df, width=WIDTH+200, hide_index=True)
