@@ -93,9 +93,7 @@ target_choice = select_l4.multiselect("Destination:", target_unique)
 
 key_unique = links["key"].unique()
 key_choice = select_l5.multiselect("Key:", key_unique)
-#
-# filtered_liks = links
-#
+
 if len(type_choice) == 0 and len(weight_choice) == 0 and len(source_choice) == 0 \
         and len(target_choice) == 0 and len(key_choice) == 0:
     n = st.data_editor(links, width=WIDTH)
@@ -125,10 +123,6 @@ elif len(key_choice) != 0:
     filtered_links = links[links['key'].isin(key_choice)]
     n = st.data_editor(filtered_links, width=WIDTH)
 
-
-# creating the source to target charts
-#---------------------------------------------
-#---------------------------------------------
 
 # ---------------------------------------- Test Purpose ----------------------------------------
 # st.write("---")

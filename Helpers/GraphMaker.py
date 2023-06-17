@@ -9,3 +9,4 @@ class Graphs:
         self.links = pd.read_csv(link_file)
 
     def create(self, to_investigate):
+        print("hello World", to_investigate)
