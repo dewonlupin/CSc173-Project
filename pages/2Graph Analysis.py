@@ -12,34 +12,44 @@ WIDTH = 850
 
 # Load the data
 df = pd.read_csv("Dataset/Links.csv")
+nodes = pd.read_csv("Dataset/Nodes.csv")
 
 # Streamlit code
 st.title('Knowledge Graph Analysis')
 st.divider()
+
 # create three columns
-a, b, c = st.columns(3)
+a, b = st.columns(2)
+d, e = st.columns(2, gap="large")
 
-# Slider for confidence score threshold
-conf_threshold = b.slider('Weight threshold', min_value=0.00, max_value=1.0, value=0.028, step=0.001)
-
-choice = c.checkbox("Turn on animations:")
+choice = e.checkbox("Turn on animations:")
 
 es = ['dynamic', 'continuous', 'discrete', 'diagonalCross', 'straightCross',
       'horizontal', 'vertical', 'curvedCW', 'curvedCCW', 'cubicBezier']
-edge_smooth = c.selectbox("Select Edge Smooth Algorithm:", es)
+edge_smooth = d.selectbox("Select Edge Smooth Algorithm:", es)
 
 # st.divider()
-
 
 # Entities to investigate
 entities_to_investigate = ['Mar de la Vida OJSC', '979893388',
                            'Oceanfront Oasis Inc Carriers', '8327']
-eti_choice = a.multiselect("Select one or more entities to investigate:", entities_to_investigate)
+eti_choice = a.multiselect("Select one or more suspected entities to investigate:", entities_to_investigate)
+# getting unique nodes
+entities = nodes["id"]
+eti2_choice = b.multiselect("Select one or more nodes to investigate:", entities)
+
+# adding suspected entitites with remaining selected nodes
+eti_choice = list(set(eti2_choice) - set(eti_choice)) + eti_choice
+
+st.divider()
+# Slider for confidence score threshold
+conf_threshold = st.slider('Weight threshold', min_value=0.0000, max_value=1.0, value=0.028, step=0.0001)
+st.divider()
 
 # ----------------------------------- Pyvis Setting -----------------------------------
 # Create Pyvis network
 net = Network(notebook=True,  directed=True, height=str(HEIGHT)+"px",
-              width="100%", filter_menu=False, select_menu=False)
+              width="100%", filter_menu=False, select_menu=False, cdn_resources='remote')
 
 # toggling physics value
 if choice:
